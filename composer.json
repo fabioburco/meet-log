@@ -1,0 +1,41 @@
+{
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^7.3",
+        "ext-ctype": "*",
+        "ext-iconv": "*",
+        "google/apiclient": "^2.2",
+        "symfony/console": "^4.4",
+        "symfony/yaml": "^4.4"
+    },
+    "config": {
+        "platform": {
+            "php": "7.3"
+        },
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "conflict": {
+        "symfony/symfony": "*"
+    },
+    "extra": {
+        "symfony": {
+            "id": "",
+            "allow-contrib": true,
+            "require": "4.4.*"
+        }
+    }
+}
