@@ -30,6 +30,8 @@ composer install
 ```php bin/console sync```
 - Al primo avvio inserire i dati mancanti del token come indicato.
 
-
-- Eventualmente inserire nel ```contab -e``` il comando ```* * * * *  php <percorso assoluto>/bin/console sync```.
+- Lanciare lo script con il comando:
+```php bin/console sync```
+- Verificare che nella cartella venga creato un file corrispondente alla data odierna.
+- Se lo script funziona correttamente inserire nel ```contab -e``` il comando ```* * * * *  php <percorso assoluto>/bin/console sync```.
 
