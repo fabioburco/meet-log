@@ -1,20 +1,6 @@
-# gsuite-team-sync
+# meet-log
 
-Questo script PHP prende un foglio gsuite spreadsheet condiviso e in base ai dati inseriti crea dei gruppi di email.
-
-Esempio:
-
-```
-+-------------------------------+---------------------------------+-------------------------------+
-| docenti.iti.gruppo1@issm.it   |   docenti.iti.gruppo2@issm.it   |   docenti@issm.it             |
-+-------------------------------+---------------------------------+-------------------------------+
-| a.gavagnin@issm.it            |   v.zen@issm.it                 |   docenti.iti.gruppo1@issm.it |
-| v.zen@issm.it                 |   a.gavagnin@issm.it            |   docenti.iti.gruppo3@issm.it | 
-|                               |   p.pellizzon@issm.it           |                               |
-| m.cerchier@issm.it            |                                 |                               |
-+-------------------------------+---------------------------------+-------------------------------+
-			
-```
+Questo script PHP estrae i log di google meet e per ogni giorno crea un foglio google spreadsheet dentro una cartella.
 
 ## Istruzioni per l'installazione
 

@@ -21,10 +21,22 @@ class SyncCommand extends Command
     private $reportService;
 
     /**
+     * @var \Google_Service_Drive
+     */
+    private $driveService;
+
+    /**
+     * @var \Google_Service_Sheets
+     */
+    private $spreadsheetService;
+
+    /**
      * @var OutputInterface
      */
     private $output;
 
+    private $spreadsheetRows;
+    private $spreadsheetRowsToAdd;
 
     protected function configure()
     {
@@ -36,9 +48,11 @@ class SyncCommand extends Command
     {
         $this->output = $output;
         $this->client = $this->authorize();
-        $this->fields = ['display_name', 'device_type', 'identifier', 'location_region','organizer_email', 'meeting_code'];
+        $this->fields = ['display_name', 'device_type', 'identifier', 'location_region', 'organizer_email', 'meeting_code', 'duration_seconds'];
 
         $this->reportService = new \Google_Service_Reports($this->client);
+        $this->driveService = new \Google_Service_Drive($this->client);
+        $this->spreadsheetService = new \Google_Service_Sheets($this->client);
         $this->getMeets();
 
     }
@@ -66,6 +80,7 @@ class SyncCommand extends Command
             array(
                 \Google_Service_Reports::ADMIN_REPORTS_AUDIT_READONLY,
                 \Google_Service_Sheets::SPREADSHEETS,
+                \Google_Service_Sheets::DRIVE_FILE,
             )
         );
         $client->setAccessType('offline');
@@ -101,11 +116,10 @@ class SyncCommand extends Command
 
     private function getMeets()
     {
-
         $userKey = 'all';
         $applicationName = 'meet';
         $optParams = array(
-            'maxResults' => 1000,
+            'maxResults' => 100
         );
         $results = $this->reportService->activities->listActivities(
             $userKey, $applicationName, $optParams);
@@ -113,15 +127,23 @@ class SyncCommand extends Command
         if (count($results->getItems()) == 0) {
             print "No logins found.\n";
         } else {
-            print "Logins:\n";
+
+
             foreach ($results->getItems() as $activity) {
-                echo "\r\n" . $activity->getId()->getTime() . ' ' . $activity->getEvents()[0]->getName();
+                $end = new \DateTime($activity->getId()->getTime());
+                $end->setTimezone(new \DateTimeZone('Europe/Rome'));
                 $data = $this->extractData($activity->getEvents()[0]->getParameters());
-                foreach ($this->fields as $key){
-                    $d=(isset($data[$key]))?$data[$key]:' ';
-                    print "\t$d";
-                }
+
+                $start = new \DateTime($activity->getId()->getTime() . ' - ' . $data['duration_seconds'] . ' seconds');
+                $start->setTimezone(new \DateTimeZone('Europe/Rome'));
+
+                $this->getDatasheet($start);
+                $row = $this->buildRow($start, $end, $data);
+                $this->addSpreadsheetRowIfNotExists($row);
+
+
             }
+            $this->flushSpreadsheetRowsToAdd();
         }
     }
 
@@ -131,9 +153,177 @@ class SyncCommand extends Command
         $data = [];
         foreach ($items as $item) {
             if (in_array($item->getName(), $this->fields)) {
-                $data[$item->getName()] = trim($item->getValue());
+                $v = (!is_null($item->getIntValue())) ? $item->getIntValue() : $item->getValue();
+                $data[$item->getName()] = trim($v);
             }
         }
         return $data;
+    }
+
+
+    private function getDatasheet(\DateTime $start)
+    {
+
+        if (!isset($this->spreadsheetRows)) {
+            $spreadsheetName = $start->format('Ymd');
+            $googleSpreadsheetId = $this->checkSpreadsheet($spreadsheetName);
+            $range = 'A2:I';
+            $response = $this->spreadsheetService->spreadsheets_values->get($googleSpreadsheetId, $range);
+            $this->spreadsheetRows = $response->getValues();
+            $i = 2;
+            if (is_array($this->spreadsheetRows)) {
+                foreach ($this->spreadsheetRows as $k) {
+                    $i++;
+                }
+            }
+            $this->startingRow = $i;
+            $this->googleSpreadsheetId = $googleSpreadsheetId;;
+        }
+
+    }
+
+
+    private function addSpreadsheetRowIfNotExists($row)
+    {
+
+
+        if (!$this->rowExistsInSpreadsheet($row)) {
+            $this->spreadsheetRows[] = $row;
+            $this->spreadsheetRowsToAdd[] = $row;
+        }
+    }
+
+
+    private function checkSpreadsheet($spreadsheetName)
+    {
+        $fileId = $this->spreadsheetExists($spreadsheetName, $this->config['folderId']);
+        if (!$fileId) {
+            $fileId = $this->createSpreadsheet($spreadsheetName, $this->config['folderId']);
+        }
+
+        return $fileId;
+    }
+
+    private function spreadsheetExists($fileName, $parentId = null)
+    {
+        $condition[] = "mimeType= 'application/vnd.google-apps.spreadsheet'";
+        $condition[] = "name='$fileName'";
+        $condition[] = 'trashed != true';
+
+        if ($parentId) {
+            $condition[] = "'$parentId' in parents";
+        }
+
+        $q = implode(' AND ', $condition);
+
+        $pageToken = null;
+        do {
+            $response = $this->driveService->files->listFiles(array(
+                'q' => $q,
+                'spaces' => 'drive',
+                'pageToken' => $pageToken,
+                'fields' => 'nextPageToken, files(id, name)',
+            ));
+            foreach ($response->files as $file) {
+                return $file->id;
+            }
+
+            $pageToken = $response->pageToken;
+        } while (null != $pageToken);
+
+        return false;
+    }
+
+    private function createSpreadsheet($filename, $parentId = null)
+    {
+        $condition['name'] = $filename;
+        $condition['mimeType'] = 'application/vnd.google-apps.spreadsheet';
+
+        if ($parentId) {
+            $condition['parents'] = [$parentId];
+        }
+        $fileMetadata = new \Google_Service_Drive_DriveFile($condition);
+        $this->driveService->files->create($fileMetadata, array(
+            'fields' => 'id',));
+        $googleSpreadsheetId = $this->spreadsheetExists($filename, $parentId);
+
+        $this->setupSpreadsheetHeader($googleSpreadsheetId);
+
+        return $googleSpreadsheetId;
+    }
+
+    private function setupSpreadsheetHeader($googleSpreadsheetId)
+    {
+        $values = [['Inizio', 'Fine', 'Codice meet', 'Email organizzatore', 'Nome partecipante', 'Identificativo partecipante', 'Zona di collegamento', 'Dispositivo', 'Durata connessione']];
+        $body = new \Google_Service_Sheets_ValueRange([
+            'values' => $values,
+        ]);
+        $params = [
+            'valueInputOption' => 'RAW',
+        ];
+
+
+        $range = 'A1:I1';
+        $result = $this->spreadsheetService->spreadsheets_values->update($googleSpreadsheetId, $range,
+            $body, $params);
+
+
+    }
+
+    private function rowExistsInSpreadsheet($row)
+    {
+        if (is_array($this->spreadsheetRows)) {
+            unset($row[0]);
+            unset($row[1]);
+
+            foreach ($this->spreadsheetRows as $spreadsheetRow) {
+                unset($spreadsheetRow[0]);
+                unset($spreadsheetRow[1]);
+                if ((
+                    is_array($row)
+                    && is_array($spreadsheetRow)
+                    && count($row) == count($spreadsheetRow)
+                    && array_diff($row, $spreadsheetRow) === array_diff($spreadsheetRow, $row)
+                )) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private function flushSpreadsheetRowsToAdd()
+    {
+        if (is_array($this->spreadsheetRowsToAdd)) {
+            $countRowsToAdd = count($this->spreadsheetRowsToAdd);
+            if ($countRowsToAdd > 0) {
+                $body = new \Google_Service_Sheets_ValueRange([
+                    'values' => $this->spreadsheetRowsToAdd,
+                ]);
+                $params = [
+                    'valueInputOption' => 'USER_ENTERED',
+                ];
+
+
+                $range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
+                $result = $this->spreadsheetService->spreadsheets_values->update($this->googleSpreadsheetId, $range,
+                    $body, $params);
+            }
+        }
+    }
+
+    private function buildRow(\DateTime $start, \DateTime $end, array $data)
+    {
+        return [
+            $start->format("d/m/Y H.i.s"),
+            $end->format("d/m/Y H.i.s"),
+            $data['meeting_code'] ?? '',
+            $data['organizer_email'] ?? '',
+            $data['display_name'] ?? '',
+            $data['identifier'] ?? '',
+            $data['location_region'] ?? '',
+            $data['device_type'] ?? '',
+            $data['duration_seconds'],
+        ];
     }
 }
