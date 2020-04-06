@@ -6,7 +6,7 @@ Questo script PHP estrae i log di google meet e per ogni giorno crea un foglio g
 
 ```
 git clone https://gitlab.com/consorzisdb/meet-log.git
-cd gmeet-log
+cd meet-log
 cp meet.yaml.dist meet.yaml
 composer install
 ```
