@@ -119,7 +119,7 @@ class SyncCommand extends Command
         $userKey = 'all';
         $applicationName = 'meet';
         $optParams = array(
-            'maxResults' => 100
+            'maxResults' => 400
         );
         $results = $this->reportService->activities->listActivities(
             $userKey, $applicationName, $optParams);
