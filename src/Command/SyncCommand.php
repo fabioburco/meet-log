@@ -119,7 +119,7 @@ class SyncCommand extends Command
         $userKey = 'all';
         $applicationName = 'meet';
         $optParams = array(
-            'maxResults' => 400
+            'maxResults' => 1000
         );
         $results = $this->reportService->activities->listActivities(
             $userKey, $applicationName, $optParams);
@@ -305,8 +305,13 @@ class SyncCommand extends Command
                 ];
 
 
-                $range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
+/*                $range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
                 $result = $this->spreadsheetService->spreadsheets_values->update($this->googleSpreadsheetId, $range,
+                    $body, $params);
+  */
+                echo "\r\n Righe da aggiungere: ". count($this->spreadsheetRowsToAdd);
+                $range = "A" . $this->startingRow ;
+                $result = $this->spreadsheetService->spreadsheets_values->append($this->googleSpreadsheetId, $range,
                     $body, $params);
             }
         }
