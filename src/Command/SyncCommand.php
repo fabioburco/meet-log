@@ -57,7 +57,6 @@ class SyncCommand extends Command
 
     }
 
-
     private function authorize()
     {
         if ('cli' != php_sapi_name()) {
@@ -70,11 +69,15 @@ class SyncCommand extends Command
             throw new \Exception('File ' . __DIR__ . '/../../meet.yaml not found.');
         }
 
+        $KEY_FILE_LOCATION = __DIR__ . '/../../googleAppsToken.json';
 
         $client = new \Google_Client();
         $client->setApplicationName('Sync google meet logs');
-        $client->setClientId($this->config['clientId']);
-        $client->setClientSecret($this->config['clientSecret']);
+        try {
+            $client->setAuthConfig($KEY_FILE_LOCATION);
+        } catch (Google_Exception $e) {
+            echo "Auth key not provided";
+        }
         $client->setRedirectUri('urn:ietf:wg:oauth:2.0:oob');
         $client->setScopes(
             array(
@@ -84,32 +87,6 @@ class SyncCommand extends Command
             )
         );
         $client->setAccessType('offline');
-
-        if ('' == $this->config['clientId'] || '' == $this->config['clientSecret']) {
-            throw new \Exception('clientId or clientSecret empties.');
-        }
-
-        $tokenFilename = __DIR__ . '/../../googleAppsToken.json';
-        if (file_exists($tokenFilename)) {
-            $accessToken = json_decode(file_get_contents($tokenFilename), true);
-        } else {
-            $authUrl = $client->createAuthUrl();
-            //Request authorization
-            echo "\n* * * *  Prima autenticazione";
-            echo "Inserisci nel browser:\n$authUrl\n\n";
-            echo "Inserisci il codice di autenticazione:\n";
-            $authCode = trim(fgets(STDIN));
-            // Exchange authorization code for access token
-            $accessToken = $client->authenticate($authCode);
-            $client->setAccessToken($accessToken);
-            file_put_contents($tokenFilename, json_encode($accessToken));
-        }
-
-        $client->setAccessToken($accessToken);
-        if ($client->isAccessTokenExpired()) {
-            $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-            file_put_contents($tokenFilename, json_encode($client->getAccessToken()));
-        }
 
         return $client;
     }
@@ -297,7 +274,7 @@ class SyncCommand extends Command
         if (is_array($this->spreadsheetRowsToAdd)) {
             $countRowsToAdd = count($this->spreadsheetRowsToAdd);
             if ($countRowsToAdd > 0) {
-                $body = new \Google_Service_Sheets_ValueRange([
+                $body = new Google_Service_Sheets_ValueRange([
                     'values' => $this->spreadsheetRowsToAdd,
                 ]);
                 $params = [
@@ -305,12 +282,11 @@ class SyncCommand extends Command
                 ];
 
 
-/*                $range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
-                $result = $this->spreadsheetService->spreadsheets_values->update($this->googleSpreadsheetId, $range,
-                    $body, $params);
-  */
-                echo "\r\n Righe da aggiungere: ". count($this->spreadsheetRowsToAdd);
-                $range = "A" . $this->startingRow ;
+                //$range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
+                //$result = $this->spreadsheetService->spreadsheets_values->update($this->googleSpreadsheetId, $range, $body, $params);
+
+                echo "\r\n Righe da aggiungere: " . count($this->spreadsheetRowsToAdd);
+                $range = "A" . $this->startingRow;
                 $result = $this->spreadsheetService->spreadsheets_values->append($this->googleSpreadsheetId, $range,
                     $body, $params);
             }
