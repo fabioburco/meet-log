@@ -54,7 +54,6 @@ class SyncCommand extends Command
         $this->driveService = new \Google_Service_Drive($this->client);
         $this->spreadsheetService = new \Google_Service_Sheets($this->client);
         $this->getMeets();
-
     }
 
     private function authorize()
@@ -75,7 +74,7 @@ class SyncCommand extends Command
         $client->setApplicationName('Sync google meet logs');
         try {
             $client->setAuthConfig($KEY_FILE_LOCATION);
-        } catch (Google_Exception $e) {
+        } catch (\Google_Exception $e) {
             echo "Auth key not provided";
         }
         $client->setRedirectUri('urn:ietf:wg:oauth:2.0:oob');
@@ -104,8 +103,6 @@ class SyncCommand extends Command
         if (count($results->getItems()) == 0) {
             print "No logins found.\n";
         } else {
-
-
             foreach ($results->getItems() as $activity) {
                 $end = new \DateTime($activity->getId()->getTime());
                 $end->setTimezone(new \DateTimeZone('Europe/Rome'));
@@ -162,8 +159,6 @@ class SyncCommand extends Command
 
     private function addSpreadsheetRowIfNotExists($row)
     {
-
-
         if (!$this->rowExistsInSpreadsheet($row)) {
             $this->spreadsheetRows[] = $row;
             $this->spreadsheetRowsToAdd[] = $row;
@@ -274,7 +269,7 @@ class SyncCommand extends Command
         if (is_array($this->spreadsheetRowsToAdd)) {
             $countRowsToAdd = count($this->spreadsheetRowsToAdd);
             if ($countRowsToAdd > 0) {
-                $body = new Google_Service_Sheets_ValueRange([
+                $body = new \Google_Service_Sheets_ValueRange([
                     'values' => $this->spreadsheetRowsToAdd,
                 ]);
                 $params = [
