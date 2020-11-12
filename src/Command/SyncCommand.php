@@ -4,6 +4,7 @@ namespace App\Command;
 
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
@@ -42,6 +43,7 @@ class SyncCommand extends Command
     {
         $this->setName('sync');
         $this->setDescription('Extract log from google meet');
+        $this->addArgument('date', InputArgument::OPTIONAL, 'User password');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -53,7 +55,7 @@ class SyncCommand extends Command
         $this->reportService = new \Google_Service_Reports($this->client);
         $this->driveService = new \Google_Service_Drive($this->client);
         $this->spreadsheetService = new \Google_Service_Sheets($this->client);
-        $this->getMeets();
+        $this->getMeets($input->getArgument('date'));
     }
 
     private function authorize()
@@ -91,36 +93,57 @@ class SyncCommand extends Command
         return $client;
     }
 
-    private function getMeets()
+    private function getMeets($date)
     {
         $userKey = 'all';
         $applicationName = 'meet';
+        if (!is_null($date)) {
+            $startTime = (new \DateTime($date . ' 7:00:00', new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339);
+            $endTime = (new \DateTime($date . ' 21:00:00', new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339);
+        } else {
+            $startTime = (new \DateTime('yesterday 7:00:00', new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339);
+            $endTime = (new \DateTime('yesterday 21:00:00', new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339);
+        }
         $optParams = array(
-            'maxResults' => 1000,
-            'startTime' => (new \DateTime('2020-11-10 8:0:0',new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339),
-            'endTime' => (new \DateTime('2020-11-10 9:0:0',new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339)
+            'startTime' => $startTime,
+            'endTime' => $endTime
         );
 
-        $results = $this->reportService->activities->listActivities(
-            $userKey, $applicationName, $optParams);
+        $pageToken = null;
 
-        if (count($results->getItems()) == 0) {
-            print "No logins found.\n";
-        } else {
-            foreach ($results->getItems() as $activity) {
-                $end = new \DateTime($activity->getId()->getTime());
-                $end->setTimezone(new \DateTimeZone('Europe/Rome'));
-                $data = $this->extractData($activity->getEvents()[0]->getParameters());
+        do {
+            if (null != $pageToken)
+                $optParams['pageToken'] = $pageToken;
 
-                $start = new \DateTime($activity->getId()->getTime() . ' - ' . $data['duration_seconds'] . ' seconds');
-                $start->setTimezone(new \DateTimeZone('Europe/Rome'));
+            $results = $this->reportService->activities->listActivities(
+                $userKey, $applicationName, $optParams);
 
-                $this->getDatasheet($start);
-                $row = $this->buildRow($start, $end, $data);
-                $this->addSpreadsheetRowIfNotExists($row);
+            if (count($results->getItems()) == 0) {
+                print "No logins found.\n";
+            } else {
+                foreach ($results->getItems() as $activity) {
+                    $end = new \DateTime($activity->getId()->getTime());
+                    $end->setTimezone(new \DateTimeZone('Europe/Rome'));
+                    $data = $this->extractData($activity->getEvents()[0]->getParameters());
+
+                    if (!isset($data['duration_seconds']))
+                        continue;
+                    elseif ($data['duration_seconds'] == 0)
+                        $start = new \DateTime($activity->getId()->getTime());
+                    else
+                        $start = new \DateTime($activity->getId()->getTime() . ' - ' . $data['duration_seconds'] . ' seconds');
+
+                    $start->setTimezone(new \DateTimeZone('Europe/Rome'));
+
+                    $this->getDatasheet($start);
+                    $row = $this->buildRow($start, $end, $data);
+                    $this->addSpreadsheetRowIfNotExists($row);
+                }
+                $this->flushSpreadsheetRowsToAdd();
             }
-            $this->flushSpreadsheetRowsToAdd();
-        }
+
+            $pageToken = $results->nextPageToken;
+        } while (null != $pageToken);
     }
 
 
@@ -240,7 +263,6 @@ class SyncCommand extends Command
         $result = $this->spreadsheetService->spreadsheets_values->update($googleSpreadsheetId, $range,
             $body, $params);
 
-
     }
 
     private function rowExistsInSpreadsheet($row)
@@ -277,7 +299,6 @@ class SyncCommand extends Command
                     'valueInputOption' => 'USER_ENTERED',
                 ];
 
-
                 //$range = "A" . $this->startingRow . ":I" . ($this->startingRow + count($this->spreadsheetRowsToAdd));
                 //$result = $this->spreadsheetService->spreadsheets_values->update($this->googleSpreadsheetId, $range, $body, $params);
 
@@ -286,6 +307,7 @@ class SyncCommand extends Command
                 $result = $this->spreadsheetService->spreadsheets_values->append($this->googleSpreadsheetId, $range,
                     $body, $params);
             }
+            $this->spreadsheetRowsToAdd = [];
         }
     }
 
