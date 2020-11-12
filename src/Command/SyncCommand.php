@@ -87,7 +87,7 @@ class SyncCommand extends Command
                 \Google_Service_Drive::DRIVE,
             )
         );
-        $client->setSubject('admin@bearzi.it');
+        $client->setSubject($this->config['admin']);
         $client->setAccessType('offline');
 
         return $client;
