@@ -5,7 +5,7 @@
         "php": "^7.3",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "google/apiclient": "^2.2",
+        "google/apiclient": "^2.7",
         "symfony/console": "^4.4",
         "symfony/yaml": "^4.4"
     },
