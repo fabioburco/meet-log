@@ -70,11 +70,11 @@ class SyncCommand extends Command
 
         $KEY_FILE_LOCATION = __DIR__ . '/../../googleAppsToken.json';
 
-        $client = new \Google_Client();
+        $client = new \Google\Client();
         $client->setApplicationName('Sync google meet logs');
         try {
             $client->setAuthConfig($KEY_FILE_LOCATION);
-        } catch (\Google_Exception $e) {
+        } catch (\Google\Exception $e) {
             echo "Auth key not provided";
         }
         $client->setRedirectUri('urn:ietf:wg:oauth:2.0:oob');
@@ -82,9 +82,10 @@ class SyncCommand extends Command
             array(
                 \Google_Service_Reports::ADMIN_REPORTS_AUDIT_READONLY,
                 \Google_Service_Sheets::SPREADSHEETS,
-                \Google_Service_Sheets::DRIVE_FILE,
+                \Google_Service_Drive::DRIVE,
             )
         );
+        $client->setSubject('admin@bearzi.it');
         $client->setAccessType('offline');
 
         return $client;
@@ -95,8 +96,11 @@ class SyncCommand extends Command
         $userKey = 'all';
         $applicationName = 'meet';
         $optParams = array(
-            'maxResults' => 1000
+            'maxResults' => 1000,
+            'startTime' => (new \DateTime('2020-11-10 8:0:0',new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339),
+            'endTime' => (new \DateTime('2020-11-10 9:0:0',new \DateTimeZone('Europe/Rome')))->format(\DateTime::RFC3339)
         );
+
         $results = $this->reportService->activities->listActivities(
             $userKey, $applicationName, $optParams);
 
@@ -114,8 +118,6 @@ class SyncCommand extends Command
                 $this->getDatasheet($start);
                 $row = $this->buildRow($start, $end, $data);
                 $this->addSpreadsheetRowIfNotExists($row);
-
-
             }
             $this->flushSpreadsheetRowsToAdd();
         }
@@ -137,7 +139,6 @@ class SyncCommand extends Command
 
     private function getDatasheet(\DateTime $start)
     {
-
         if (!isset($this->spreadsheetRows)) {
             $spreadsheetName = $start->format('Ymd');
             $googleSpreadsheetId = $this->checkSpreadsheet($spreadsheetName);
