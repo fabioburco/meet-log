@@ -105,8 +105,11 @@ class MeetLog
         return $client;
     }
 
-    public function getMeets($date)
+    public function getMeets($date, $all)
     {
+        if (!$all && empty($this->whitelist))
+            throw new Exception('Whitelist not provided');
+
         $userKey = 'all';
         $applicationName = 'meet';
         if (!is_null($date)) {
@@ -141,7 +144,9 @@ class MeetLog
                     $end->setTimezone(new DateTimeZone('Europe/Rome'));
                     $data = $this->extractData($activity->getEvents()[0]->getParameters());
 
-                    // TODO check if meet is to process
+                    if (!$all)
+                        if (!isset($data['meeting_code']) || !in_array($data['meeting_code'], $this->whitelist))
+                            continue;
 
                     if (!isset($data['duration_seconds']) || $data['duration_seconds'] == 0)
                         $start = new DateTime($activity->getId()->getTime());
