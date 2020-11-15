@@ -20,8 +20,9 @@ class SyncCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $meet = new MeetLog();
+        $date = $input->getArgument('date');
 
-        $meet->getMeets($input->getArgument('date'));
+        $meet = new MeetLog();
+        $meet->getMeets($date);
     }
 }

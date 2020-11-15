@@ -53,28 +53,35 @@ class MeetLog
     private $fields;
 
     /**
+     * @var string[]
+     */
+    private $whitelist;
+
+    /**
      * MeetLog constructor.
      */
     public function __construct()
     {
-        $client = $this->authorize();
+        if (file_exists(__DIR__ . '/../meet.yaml')) {
+            $this->config = Yaml::parse(file_get_contents(__DIR__ . '/../meet.yaml'));
+        } else {
+            throw new Exception('File ' . __DIR__ . '/../meet.yaml not found.');
+        }
+
         $this->fields = ['display_name', 'device_type', 'identifier', 'location_region', 'organizer_email', 'meeting_code', 'duration_seconds'];
 
+        $client = $this->authorize();
         $this->reportService = new Google_Service_Reports($client);
         $this->driveService = new Google_Service_Drive($client);
         $this->spreadsheetService = new Google_Service_Sheets($client);
+
+        $this->whitelist = $this->getWhitelist();
     }
 
     private function authorize()
     {
         if ('cli' != php_sapi_name()) {
             throw new Exception('This application must be run on the command line.');
-        }
-
-        if (file_exists(__DIR__ . '/../meet.yaml')) {
-            $this->config = Yaml::parse(file_get_contents(__DIR__ . '/../meet.yaml'));
-        } else {
-            throw new Exception('File ' . __DIR__ . '/../meet.yaml not found.');
         }
 
         $client = new Google_Client();
@@ -111,7 +118,8 @@ class MeetLog
         }
         $optParams = array(
             'startTime' => $startTime,
-            'endTime' => $endTime
+            'endTime' => $endTime,
+            'eventName' => 'call_ended',
         );
 
         $spreadsheetName = (new DateTime($date))->format('Ymd') . '-' . time();
@@ -132,6 +140,8 @@ class MeetLog
                     $end = new DateTime($activity->getId()->getTime());
                     $end->setTimezone(new DateTimeZone('Europe/Rome'));
                     $data = $this->extractData($activity->getEvents()[0]->getParameters());
+
+                    // TODO check if meet is to process
 
                     if (!isset($data['duration_seconds']) || $data['duration_seconds'] == 0)
                         $start = new DateTime($activity->getId()->getTime());
@@ -222,5 +232,19 @@ class MeetLog
             $data['device_type'] ?? '',
             $data['duration_seconds'] ?? '',
         ];
+    }
+
+    private function getWhitelist()
+    {
+        if (isset($this->config['whitelist'])) {
+            $spreadsheetId = $this->config['whitelist'];
+            $params = [
+                'majorDimension' => 'COLUMNS'
+            ];
+            $result = $this->spreadsheetService->spreadsheets_values->get($spreadsheetId, 'A:A', $params);
+            return $result->getValues()[0];
+        } else {
+            return [];
+        }
     }
 }
