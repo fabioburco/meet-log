@@ -4,6 +4,7 @@ namespace App\Command;
 
 
 use App\MeetLog;
+use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,7 +19,7 @@ class SyncCommand extends Command
         $this->setDescription('Extract log from google meet');
         $this->addArgument('date', InputArgument::OPTIONAL, 'User password');
         $this->addOption('all', '-a', InputOption::VALUE_OPTIONAL | InputOption::VALUE_NONE,
-            'Get all Meets?');
+            'Get all the Meets or only those specified in whitelist?');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -27,6 +28,10 @@ class SyncCommand extends Command
         $all = $input->getOption('all');
 
         $meet = new MeetLog();
-        $meet->getMeets($date, $all);
+        try {
+            $meet->getMeets($date, $all);
+        } catch (Exception $e) {
+            $output->writeln("Something went wrong. " . $e->getMessage());
+        }
     }
 }
