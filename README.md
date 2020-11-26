@@ -5,7 +5,7 @@ Questo script PHP estrae i log di Google Meet per una data indicata in input e c
 ## Istruzioni per l'installazione
 
 ```
-git clone https://gitlab.com/consorzisdb/meet-log.git
+git clone https://github.com/fabioburco/meet-log
 cd meet-log
 cp meet.yaml.dist meet.yaml
 composer install
