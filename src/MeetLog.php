@@ -15,6 +15,9 @@ use Symfony\Component\Yaml\Yaml;
 
 class MeetLog
 {
+    /**
+     * @var string
+     */
     private $KEY_FILE_LOCATION = __DIR__ . '/../googleAppsToken.json';
 
     /**
@@ -59,6 +62,7 @@ class MeetLog
 
     /**
      * MeetLog constructor.
+     * @throws Exception
      */
     public function __construct()
     {
@@ -78,6 +82,10 @@ class MeetLog
         $this->whitelist = $this->getWhitelist();
     }
 
+    /**
+     * @return Google_Client
+     * @throws Exception
+     */
     private function authorize()
     {
         if ('cli' != php_sapi_name()) {
@@ -105,6 +113,11 @@ class MeetLog
         return $client;
     }
 
+    /**
+     * @param $date
+     * @param $all
+     * @throws Exception
+     */
     public function getMeets($date, $all)
     {
         if (!$all && empty($this->whitelist))
@@ -163,6 +176,10 @@ class MeetLog
         } while (null != $pageToken);
     }
 
+    /**
+     * @param $items
+     * @return array
+     */
     private function extractData($items)
     {
         $data = [];
@@ -175,6 +192,11 @@ class MeetLog
         return $data;
     }
 
+    /**
+     * @param $filename
+     * @param null $parentId
+     * @return mixed
+     */
     private function createSpreadsheet($filename, $parentId = null)
     {
         $fileMetadata = new Google_Service_Drive_DriveFile();
@@ -193,6 +215,9 @@ class MeetLog
         return $spreadsheetId;
     }
 
+    /**
+     * @param $spreadsheetId
+     */
     private function setupSpreadsheetHeader($spreadsheetId)
     {
         $values = [['Inizio', 'Fine', 'Codice meet', 'Email organizzatore', 'Nome partecipante', 'Identificativo partecipante', 'Zona di collegamento', 'Dispositivo', 'Durata connessione']];
@@ -205,6 +230,9 @@ class MeetLog
         $this->spreadsheetService->spreadsheets_values->update($spreadsheetId, $range, $body, $params);
     }
 
+    /**
+     *
+     */
     private function flushSpreadsheetRows()
     {
         if (is_array($this->spreadsheetRows)) {
@@ -224,6 +252,12 @@ class MeetLog
         }
     }
 
+    /**
+     * @param DateTime $start
+     * @param DateTime $end
+     * @param array $data
+     * @return array
+     */
     private function buildRow(DateTime $start, DateTime $end, array $data)
     {
         return [
@@ -239,6 +273,9 @@ class MeetLog
         ];
     }
 
+    /**
+     * @return array|mixed
+     */
     private function getWhitelist()
     {
         if (isset($this->config['whitelist'])) {
