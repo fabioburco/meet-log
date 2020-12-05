@@ -23,11 +23,6 @@
             "App\\": "src/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "App\\Tests\\": "tests/"
-        }
-    },
     "conflict": {
         "symfony/symfony": "*"
     },

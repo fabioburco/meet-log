@@ -86,7 +86,7 @@ class MeetLog
      * @return Google_Client
      * @throws Exception
      */
-    private function authorize()
+    private function authorize(): Google_Client
     {
         if ('cli' != php_sapi_name()) {
             throw new Exception('This application must be run on the command line.');
@@ -180,7 +180,7 @@ class MeetLog
      * @param $items
      * @return array
      */
-    private function extractData($items)
+    private function extractData($items): array
     {
         $data = [];
         foreach ($items as $item) {
@@ -258,7 +258,7 @@ class MeetLog
      * @param array $data
      * @return array
      */
-    private function buildRow(DateTime $start, DateTime $end, array $data)
+    private function buildRow(DateTime $start, DateTime $end, array $data): array
     {
         return [
             $start->format("d/m/Y H.i.s"),
@@ -276,7 +276,7 @@ class MeetLog
     /**
      * @return array|mixed
      */
-    private function getWhitelist()
+    private function getWhitelist(): array
     {
         if (isset($this->config['whitelist'])) {
             $spreadsheetId = $this->config['whitelist'];
