@@ -129,11 +129,11 @@ class MeetLog
         if (!is_null($date)) {
             $startTime = (new DateTime($date . ' 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $endTime = (new DateTime($date . ' 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
+            $spreadsheetName = (new DateTime($date))->format('Ymd') . '-' . time();
         } else {
             $startTime = (new DateTime('yesterday 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $endTime = (new DateTime('yesterday 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-            
-            echo "\r\nUsing $startTime as date";
+            $spreadsheetName = (new DateTime('yesterday'))->format('Ymd') . '-' . time();
         }
         
         $optParams = array(
@@ -141,8 +141,7 @@ class MeetLog
             'endTime' => $endTime,
             'eventName' => 'call_ended',
         );
-
-        $spreadsheetName = (new DateTime($date))->format('Ymd') . '-' . time();
+        
         $this->spreadsheetId = $this->createSpreadsheet($spreadsheetName, $this->config['folderId']);
 
         $pageToken = null;
