@@ -125,13 +125,16 @@ class MeetLog
 
         $userKey = 'all';
         $applicationName = 'meet';
+        
         if (!is_null($date)) {
             $startTime = (new DateTime($date . ' 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $endTime = (new DateTime($date . ' 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
         } else {
+            echo "\r\nUsing yesterday as date";
             $startTime = (new DateTime('yesterday 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $endTime = (new DateTime('yesterday 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
         }
+        
         $optParams = array(
             'startTime' => $startTime,
             'endTime' => $endTime,
