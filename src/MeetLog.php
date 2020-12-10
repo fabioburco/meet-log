@@ -2,6 +2,7 @@
 
 namespace App;
 
+
 use DateTime;
 use DateTimeZone;
 use Exception;
@@ -116,16 +117,17 @@ class MeetLog
     /**
      * @param $date
      * @param $all
+     * @param $meetCode
      * @throws Exception
      */
-    public function getMeets($date, $all)
+    public function getMeets($date, $all, $meetCode)
     {
         if (!$all && empty($this->whitelist))
             throw new Exception('Whitelist not provided');
 
         $userKey = 'all';
         $applicationName = 'meet';
-        
+
         if (!is_null($date)) {
             $startTime = (new DateTime($date . ' 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $endTime = (new DateTime($date . ' 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
@@ -135,13 +137,20 @@ class MeetLog
             $endTime = (new DateTime('yesterday 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
             $spreadsheetName = (new DateTime('yesterday'))->format('Ymd') . '-' . time();
         }
-        
+
         $optParams = array(
             'startTime' => $startTime,
             'endTime' => $endTime,
             'eventName' => 'call_ended',
         );
-        
+
+        if (!is_null($meetCode)) {
+            // add meeting code filter
+            $optParams['filters'] = 'meeting_code==' . $meetCode;
+            // insert meeting code between date and timestamp
+            $spreadsheetName = preg_replace('/(.*)(-\d+)/', '$1-' . $meetCode . '$2', $spreadsheetName);
+        }
+
         $this->spreadsheetId = $this->createSpreadsheet($spreadsheetName, $this->config['folderId']);
 
         $pageToken = null;
