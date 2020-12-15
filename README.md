@@ -34,8 +34,11 @@ composer install
 - Per ottenere i log di una data precisa:
 ```php bin/console sync <data>```
 
-- Per ottenere tutti i log dello scorso giorno usare:
+- Per ottenere tutti i log di un giorno specifico usare:
 ```php bin/console sync <data> -a```
+
+- Per ottenere i log di un Meet specifico usare:
+```php bin/console sync <data> -m <meeting_code>```
 
 - Se lo script funziona correttamente inserire in ```crontab -e``` il comando ```30 0 * * *  php <percorso assoluto>/bin/console sync```.
 
