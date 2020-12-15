@@ -13,6 +13,7 @@ use Google_Service_Reports;
 use Google_Service_Sheets;
 use Google_Service_Sheets_ValueRange;
 use Symfony\Component\Yaml\Yaml;
+use Psr\Log\LoggerInterface;
 
 class MeetLog
 {
@@ -62,16 +63,24 @@ class MeetLog
     private $whitelist;
 
     /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * MeetLog constructor.
+     * @param LoggerInterface $logger
      * @throws Exception
      */
-    public function __construct()
+    public function __construct(LoggerInterface $logger)
     {
         if (file_exists(__DIR__ . '/../meet.yaml')) {
             $this->config = Yaml::parse(file_get_contents(__DIR__ . '/../meet.yaml'));
         } else {
             throw new Exception('File ' . __DIR__ . '/../meet.yaml not found.');
         }
+
+        $this->logger = $logger;
 
         $this->fields = ['display_name', 'device_type', 'identifier', 'location_region', 'organizer_email', 'meeting_code', 'duration_seconds'];
 
@@ -95,11 +104,7 @@ class MeetLog
 
         $client = new Google_Client();
         $client->setApplicationName('Sync google meet logs');
-        try {
-            $client->setAuthConfig($this->KEY_FILE_LOCATION);
-        } catch (Exception $e) {
-            echo "Auth key not provided";
-        }
+        $client->setAuthConfig($this->KEY_FILE_LOCATION);
         $client->setRedirectUri('urn:ietf:wg:oauth:2.0:oob');
         $client->setScopes(
             array(
@@ -255,11 +260,12 @@ class MeetLog
                 $params = [
                     'valueInputOption' => 'USER_ENTERED',
                 ];
+                $this->logger->info("Added " . count($this->spreadsheetRows) . " lines");
 
-                echo "\r\n Righe da aggiungere: " . count($this->spreadsheetRows);
                 $range = "A2";
                 $this->spreadsheetService->spreadsheets_values->append($this->spreadsheetId, $range, $body, $params);
                 $this->spreadsheetRows = [];
+
             }
         }
     }

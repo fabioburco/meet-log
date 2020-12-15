@@ -9,6 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class SyncCommand extends Command
@@ -26,16 +27,22 @@ class SyncCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
+        $logger = new ConsoleLogger($output);
+
         $date = $input->getArgument('date');
         $all = (false === $input->getOption('all')) ? false : true;
         $code = $input->getOption('meet');
 
-        $meet = new MeetLog();
+        try {
+            $meet = new MeetLog($logger);
+        } catch (Exception $e) {
+            $logger->error("Something went wrong. " . $e->getMessage());
+        }
 
         try {
             $meet->getMeets($date, $all, $code);
         } catch (Exception $e) {
-            $output->writeln("Something went wrong. " . $e->getMessage());
+            $logger->error("Something went wrong. " . $e->getMessage());
         }
     }
 }
