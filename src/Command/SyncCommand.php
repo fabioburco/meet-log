@@ -23,6 +23,8 @@ class SyncCommand extends Command
             'Get all the Meets and ignore whitelist', false);
         $this->addOption('meet', '-m', InputOption::VALUE_OPTIONAL,
             'Get only a specific Meet');
+        $this->addOption('full', '-f', InputOption::VALUE_OPTIONAL,
+            'Get all available logs (6 months)', false);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): void
@@ -32,15 +34,11 @@ class SyncCommand extends Command
         $date = $input->getArgument('date');
         $all = (false === $input->getOption('all')) ? false : true;
         $code = $input->getOption('meet');
+        $full = (false === $input->getOption('full')) ? false : true;
 
         try {
             $meet = new MeetLog($logger);
-        } catch (Exception $e) {
-            $logger->error("Something went wrong. " . $e->getMessage());
-        }
-
-        try {
-            $meet->getMeets($date, $all, $code);
+            $meet->getMeets($date, $all, $code, $full);
         } catch (Exception $e) {
             $logger->error("Something went wrong. " . $e->getMessage());
         }

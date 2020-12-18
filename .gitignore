@@ -1,4 +1,4 @@
 .idea
 /vendor/
 googleAppsToken.json
-meet.yaml
+meet*.yaml

@@ -123,25 +123,24 @@ class MeetLog
      * @param $date
      * @param $all
      * @param $meetCode
+     * @param $full
      * @throws Exception
      */
-    public function getMeets($date, $all, $meetCode)
+    public function getMeets($date, $all, $meetCode, $full)
     {
         if (!$all && empty($this->whitelist))
             throw new Exception('Whitelist not provided');
+        if (!$full && is_null($meetCode))
+            throw new Exception("When you require 6 months of logs specify only one meet");
 
-        $userKey = 'all';
-        $applicationName = 'meet';
+        if (is_null($date))
+            $date = 'yesterday';
 
-        if (!is_null($date)) {
-            $startTime = (new DateTime($date . ' 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-            $endTime = (new DateTime($date . ' 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-            $spreadsheetName = (new DateTime($date))->format('Ymd') . '-' . time();
-        } else {
-            $startTime = (new DateTime('yesterday 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-            $endTime = (new DateTime('yesterday 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-            $spreadsheetName = (new DateTime('yesterday'))->format('Ymd') . '-' . time();
-        }
+        $startTime = (new DateTime((!$full ? $date . ' 7:00:00' : 'today - 6 months 00:00:00'), new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
+        $endTime = (new DateTime((!$full ? $date . ' 21:00:00' : 'yesterday 23:59:59'), new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
+        $spreadsheetName = (new DateTime((!$full ? $date : 'full')))->format('Ymd') . '-' . time();
+
+        $this->logger->info("Getting logs from $startTime to $endTime");
 
         $optParams = array(
             'startTime' => $startTime,
@@ -158,6 +157,8 @@ class MeetLog
 
         $this->spreadsheetId = $this->createSpreadsheet($spreadsheetName, $this->config['folderId']);
 
+        $userKey = 'all';
+        $applicationName = 'meet';
         $pageToken = null;
 
         do {
@@ -167,14 +168,14 @@ class MeetLog
             $results = $this->reportService->activities->listActivities($userKey, $applicationName, $optParams);
 
             if (count($results->getItems()) == 0) {
-                print "No logins found.\n";
+                $this->logger->info("No logins found");
             } else {
                 foreach ($results->getItems() as $activity) {
                     $end = new DateTime($activity->getId()->getTime());
                     $end->setTimezone(new DateTimeZone('Europe/Rome'));
                     $data = $this->extractData($activity->getEvents()[0]->getParameters());
 
-                    if (!$all)
+                    if (!$all && is_null($meetCode))
                         if (!isset($data['meeting_code']) || !in_array($data['meeting_code'], $this->whitelist))
                             continue;
 
