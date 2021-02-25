@@ -130,7 +130,7 @@ class MeetLog
     {
         if (!$all && empty($this->whitelist))
             throw new Exception('Whitelist not provided');
-        if (!$full && is_null($meetCode))
+        if ($full && is_null($meetCode))
             throw new Exception("When you require 6 months of logs specify only one meet");
 
         if (is_null($date))
@@ -238,7 +238,7 @@ class MeetLog
      */
     private function setupSpreadsheetHeader($spreadsheetId)
     {
-        $values = [['Inizio', 'Fine', 'Codice meet', 'Email organizzatore', 'Nome partecipante', 'Identificativo partecipante', 'Zona di collegamento', 'Dispositivo', 'Durata connessione']];
+        $values = [['Inizio', 'Fine', 'Codice meet', 'Email organizzatore', 'Nome partecipante', 'Identificativo partecipante', 'Zona di collegamento', 'Dispositivo', 'Durata connessione (s)']];
         $body = new Google_Service_Sheets_ValueRange();
         $body->setValues($values);
         $params = [
