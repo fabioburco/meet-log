@@ -4,6 +4,7 @@ namespace App;
 
 
 use DateTime;
+use DateTimeInterface;
 use DateTimeZone;
 use Exception;
 use Google_Client;
@@ -136,8 +137,8 @@ class MeetLog
         if (is_null($date))
             $date = 'yesterday';
 
-        $startTime = (new DateTime((!$full ? $date . ' 7:00:00' : 'today - 6 months 00:00:00'), new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
-        $endTime = (new DateTime((!$full ? $date . ' 21:00:00' : 'yesterday 23:59:59'), new DateTimeZone('Europe/Rome')))->format(DateTime::RFC3339);
+        $startTime = (new DateTime((!$full ? $date . ' 7:00:00' : 'today - 6 months 00:00:00'), new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
+        $endTime = (new DateTime((!$full ? $date . ' 21:00:00' : 'yesterday 23:59:59'), new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
         $spreadsheetName = (new DateTime((!$full ? $date : 'full')))->format('Ymd') . '-' . time();
 
         $this->logger->info("Getting logs from $startTime to $endTime");

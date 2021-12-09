@@ -32,9 +32,9 @@ class SyncCommand extends Command
         $logger = new ConsoleLogger($output);
 
         $date = $input->getArgument('date');
-        $all = (false === $input->getOption('all')) ? false : true;
+        $all = !((false === $input->getOption('all')));
         $code = $input->getOption('meet');
-        $full = (false === $input->getOption('full')) ? false : true;
+        $full = !((false === $input->getOption('full')));
 
         try {
             $meet = new MeetLog($logger);
