@@ -122,24 +122,20 @@ class MeetLog
 
     /**
      * @param $date
-     * @param $all
      * @param $meetCode
-     * @param $full
      * @throws Exception
      */
-    public function getMeets($date, $all, $meetCode, $full)
+    public function getMeets($date, $meetCode)
     {
-        if (!$all && empty($this->whitelist))
-            throw new Exception('Whitelist not provided');
-        if ($full && is_null($meetCode))
-            throw new Exception("When you require 6 months of logs specify only one meet");
+        if (is_null($meetCode) && empty($this->whitelist))
+            throw new Exception('Whitelist or meet code not provided');
 
         if (is_null($date))
             $date = 'yesterday';
 
-        $startTime = (new DateTime((!$full ? $date . ' 7:00:00' : 'today - 6 months 00:00:00'), new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
-        $endTime = (new DateTime((!$full ? $date . ' 21:00:00' : 'yesterday 23:59:59'), new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
-        $spreadsheetName = (new DateTime((!$full ? $date : 'full')))->format('Ymd') . '-' . time();
+        $startTime = (new DateTime($date . ' 7:00:00', new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
+        $endTime = (new DateTime($date . ' 21:00:00', new DateTimeZone('Europe/Rome')))->format(DateTimeInterface::RFC3339);
+        $spreadsheetName = (new DateTime($date))->format('Ymd') . '-' . time();
 
         $this->logger->info("Getting logs from $startTime to $endTime");
 
@@ -176,7 +172,7 @@ class MeetLog
                     $end->setTimezone(new DateTimeZone('Europe/Rome'));
                     $data = $this->extractData($activity->getEvents()[0]->getParameters());
 
-                    if (!$all && is_null($meetCode))
+                    if (is_null($meetCode))
                         if (!isset($data['meeting_code']) || !in_array($data['meeting_code'], $this->whitelist))
                             continue;
 
@@ -214,9 +210,9 @@ class MeetLog
     /**
      * @param $filename
      * @param null $parentId
-     * @return mixed
+     * @return string
      */
-    private function createSpreadsheet($filename, $parentId = null)
+    private function createSpreadsheet($filename, $parentId = null): string
     {
         $fileMetadata = new Google_Service_Drive_DriveFile();
         $fileMetadata->setName($filename);

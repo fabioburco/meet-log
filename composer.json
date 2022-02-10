@@ -5,9 +5,9 @@
         "php": "^7.3",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "google/apiclient": "^2.7",
-        "symfony/console": "^4.4",
-        "symfony/yaml": "^4.4"
+        "google/apiclient": "^2.12.1",
+        "symfony/console": "^5.4",
+        "symfony/yaml": "^5.4"
     },
     "config": {
         "platform": {
@@ -17,6 +17,9 @@
             "*": "dist"
         },
         "sort-packages": true
+    },
+    "scripts": {
+        "pre-autoload-dump": "Google\\Task\\Composer::cleanup"
     },
     "autoload": {
         "psr-4": {
@@ -31,6 +34,11 @@
             "id": "",
             "allow-contrib": true,
             "require": "4.4.*"
-        }
+        },
+        "google/apiclient-services": [
+            "Drive",
+            "Reports",
+            "Sheets"
+        ]
     }
 }
