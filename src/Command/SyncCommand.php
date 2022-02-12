@@ -19,7 +19,8 @@ class SyncCommand extends Command
         $this->setName('sync');
         $this->setDescription('Extract log from google meet');
         $this->addArgument('date', InputArgument::OPTIONAL, 'Date of the Meets');
-        $this->addOption('meet', '-m', InputOption::VALUE_OPTIONAL, 'Get only a specific Meet');
+        $this->addOption('meet', '-m', InputOption::VALUE_OPTIONAL,
+            'Get only a specific Meet');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -33,7 +34,7 @@ class SyncCommand extends Command
             $meet = new MeetLog($logger);
             $meet->getMeets($date, $code);
         } catch (Exception $e) {
-            $logger->error("Something went wrong. " . $e->getMessage());
+            $logger->error($e->getMessage());
             return Command::FAILURE;
         }
         return Command::SUCCESS;
