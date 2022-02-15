@@ -34,9 +34,6 @@ composer install
 - Per ottenere i log di una data precisa:
 ```php bin/console sync <data>```
 
-- Per ottenere tutti i log di un giorno specifico usare:
-```php bin/console sync <data> -a```
-
 - Per ottenere i log di un Meet specifico usare:
 ```php bin/console sync <data> -m <meeting_code>```
 
