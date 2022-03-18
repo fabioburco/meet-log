@@ -1,30 +1,22 @@
+#!/usr/bin/env php
 <?php
-
-namespace App\Command;
-
+require __DIR__ . '/vendor/autoload.php';
 
 use App\MeetLog;
-use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\SingleCommandApplication;
 
-class SyncCommand extends Command
-{
-    protected function configure()
-    {
-        $this->setName('sync');
-        $this->setDescription('Extract log from google meet');
-        $this->addArgument('date', InputArgument::OPTIONAL, 'Date of the Meets');
-        $this->addOption('meet', '-m', InputOption::VALUE_OPTIONAL,
-            'Get only a specific Meet');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
+(new SingleCommandApplication())
+    ->setName('Google Meet Log Sync') // Optional
+    ->setDescription('Extract log from google meet')
+    ->addArgument('date', InputArgument::OPTIONAL, 'Date of the Meets')
+    ->addOption('meet', '-m', InputOption::VALUE_OPTIONAL, 'Get only a specific Meet')
+    ->setCode(function (InputInterface $input, OutputInterface $output) {
         $logger = new ConsoleLogger($output);
 
         $date = $input->getArgument('date');
@@ -38,5 +30,5 @@ class SyncCommand extends Command
             return Command::FAILURE;
         }
         return Command::SUCCESS;
-    }
-}
+    })
+    ->run();
